@@ -34,28 +34,40 @@ class TestValidateValid(unittest.TestCase):
 
 class TestValidateInvalid(unittest.TestCase):
 
-    invalids = [
-        1,
-        None,
-        'asd',
-        [],
-        [1],
-        ['asd'],
-        [1, 2],
-        [1, 'as'],
-        {},
-        {1: 3},
-        {1: 'a'},
-        {2: 2},
-        {1: 2, 2: 3},
-    ]
-
-    def test_invalids(self):
-        for a in self.invalids:
-            for b in self.invalids:
+    def _test_wrongs(self, exc, wrongs):
+        for a in wrongs:
+            for b in wrongs:
                 if a is not b:
-                    self.assertRaises(AssertionError, validate, a, b)
+                    self.assertRaises(exc, validate, a, b)
 
+    def test_wrong_type(self):
+        invalid_types = [
+            1,
+            None,
+            'asd',
+            [1],
+            ['a'],
+            [None],
+            {1: 'b'},
+        ]
+        self._test_wrongs(WrongType, invalid_types)
+
+    def test_wrong_length(self):
+        wrong_lengths = [
+            [],
+            [1],
+            [1, 2],
+        ]
+        self._test_wrongs(WrongLength, wrong_lengths)
+
+    def test_wrong_keys(self):
+        wrong_keys = [
+            {},
+            {1: 3},
+            {2: 'a'},
+            {1: 1, 2: 2},
+        ]
+        self._test_wrongs(WrongKeys, wrong_keys)
 
 
 if __name__ == '__main__':
