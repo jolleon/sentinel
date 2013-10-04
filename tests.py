@@ -77,8 +77,74 @@ class TestListSchema(unittest.TestCase):
         child1_problems[1].add_path.assert_called_once_with(1)
 
 
+class IntegrationTestDictSchema(unittest.TestCase):
 
-class IntegrationTestValidate(unittest.TestCase):
+    def setUp(self):
+        self.model = {
+            1: 1,
+            'a': 3,
+            'my_list': [],
+            'my_object': {}
+        }
+        self.schema = build_schema(self.model)
+
+    def test_valid_self(self):
+        problems = self.schema.validate(self.model)
+        self.assertEqual(problems, [])
+
+    def test_valid(self):
+        self.model[1] = 2
+        self.model['a'] = 54
+        problems = self.schema.validate(self.model)
+        self.assertEqual(problems, [])
+
+    def test_unexpected_key(self):
+        self.model['new_key'] = 'a'
+        problems = self.schema.validate(self.model)
+        self.assertEqual(repr(problems), repr([
+            Problem('Unexpected Key', None, 'new_key', '')
+        ]))
+
+    def test_propagate(self):
+        self.model[1] = 'a'
+        problems = self.schema.validate(self.model)
+        self.assertEqual(repr(problems), repr([
+            Problem('Invalid Type', int, str, '1')
+        ]))
+
+    def test_propagate_2(self):
+        self.model[1] = 'a'
+        self.model['a'] = 'a'
+        problems = self.schema.validate(self.model)
+        self.assertEqual(repr(problems), repr([
+            Problem('Invalid Type', int, str, 'a'),
+            Problem('Invalid Type', int, str, '1'),
+        ]))
+
+    def test_missing_key_value(self):
+        del self.model['a']
+        problems = self.schema.validate(self.model)
+        self.assertEqual(repr(problems), repr([
+            Problem('Missing Key', 'a', None, '')
+        ]))
+
+    def test_missing_key_dict(self):
+        del self.model['my_object']
+        problems = self.schema.validate(self.model)
+        self.assertEqual(repr(problems), repr([
+            Problem('Missing Key', 'my_object', None, '')
+        ]))
+
+    def test_missing_key_value(self):
+        del self.model['my_list']
+        problems = self.schema.validate(self.model)
+        self.assertEqual(repr(problems), repr([
+            Problem('Missing Key', 'my_list', None, '')
+        ]))
+
+
+
+class IntegrationTestNested(unittest.TestCase):
 
     def setUp(self):
 
@@ -117,70 +183,28 @@ class IntegrationTestValidate(unittest.TestCase):
         problems = self.schema.validate(self.model)
         self.assertEqual(problems, [])
 
-    def test_invalid_1(self):
-        self.model[1] = 'a'
-        problems = self.schema.validate(self.model)
-        self.assertEqual(repr(problems), repr([
-            Problem('Invalid Type', int, str, '1')
-        ]))
-
-    def test_invalid_2(self):
-        self.model['asd'] = 'a'
-        problems = self.schema.validate(self.model)
-        self.assertEqual(repr(problems), repr([
-            Problem('Invalid Type', type(None), str, 'asd')
-        ]))
-
-    def test_invalid_3(self):
-        self.model['new_key'] = 'a'
-        problems = self.schema.validate(self.model)
-        self.assertEqual(repr(problems), repr([
-            Problem('Unexpected Key', None, 'new_key', '')
-        ]))
-
-    def test_invalid_4(self):
-        del self.model['asd']
-        problems = self.schema.validate(self.model)
-        self.assertEqual(repr(problems), repr([
-            Problem('Missing Key', 'asd', None, '')
-        ]))
-
-    def test_invalid_5(self):
-        del self.model['my_object']
-        problems = self.schema.validate(self.model)
-        self.assertEqual(repr(problems), repr([
-            Problem('Missing Key', 'my_object', None, '')
-        ]))
-
-    def test_invalid_6(self):
-        del self.model['my_list']
-        problems = self.schema.validate(self.model)
-        self.assertEqual(repr(problems), repr([
-            Problem('Missing Key', 'my_list', None, '')
-        ]))
-
-    def test_invalid_7(self):
+    def test_invalid_type_dict_list(self):
         self.model['my_object']['other_list'][0] = 2
         problems = self.schema.validate(self.model)
         self.assertEqual(repr(problems), repr([
             Problem('Invalid Type', str, int, 'my_object.other_list.0')
         ]))
 
-    def test_invalid_8(self):
+    def test_invalid_type_dict_list_dict(self):
         self.model['my_object'][3][0]['a'] = 'a'
         problems = self.schema.validate(self.model)
         self.assertEqual(repr(problems), repr([
             Problem('Invalid Type', int, str, 'my_object.3.0.a')
         ]))
 
-    def test_invalid_9(self):
+    def test_unexpected_key_dict_list_dict(self):
         self.model['my_object'][3][0]['b'] = 'a'
         problems = self.schema.validate(self.model)
         self.assertEqual(repr(problems), repr([
             Problem('Unexpected Key', None, 'b', 'my_object.3.0')
         ]))
 
-    def test_invalid_10(self):
+    def test_invalid_type_unexpected_key_dict_list_dict(self):
         self.model['my_object'][3][0]['b'] = 'a'
         self.model['my_object'][3][0]['a'] = 'a'
         problems = self.schema.validate(self.model)
