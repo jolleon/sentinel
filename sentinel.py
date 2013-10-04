@@ -1,19 +1,12 @@
+from collections import namedtuple
 from string import Template
 
 class Invalid(Exception):
     pass
 
 
-class Schema(object):
-
-    def serialize(self, data):
-        problems = self.validate(data)
-        if len(problems) > 0:
-            raise Invalid(problems)
-        return data
-
-    def deserialize(self, data):
-        return self.serialize(data)
+class SchemaError(Exception):
+    pass
 
 
 class Problem(object):
@@ -36,6 +29,19 @@ class Problem(object):
             expected=self.expected,
             actual=self.actual
         )
+
+
+
+class Schema(object):
+
+    def serialize(self, data):
+        problems = self.validate(data)
+        if len(problems) > 0:
+            raise Invalid(problems)
+        return data
+
+    def deserialize(self, data):
+        return self.serialize(data)
 
 
 class ValueSchema(Schema):
@@ -80,20 +86,43 @@ class ListSchema(Schema):
         return problems
 
 
+class DictConfig(namedtuple('DictConfig', [
+    'unexpected',
+    ])):
+    def __new__(cls, unexpected='raise'):
+        assert unexpected in ['raise', 'ignore']
+        return super(DictConfig, cls).__new__(cls, unexpected)
+
+
+config_key = 'sentinelconfignooneusethatihope'
+
 class DictSchema(Schema):
 
-    def __init__(self, mapping):
+    def __init__(self, mapping, config=None):
         self.mapping = mapping
+        if config is None:
+            config = DictConfig()
+        self.config = config
 
     @classmethod
-    def build_schema(cls, data):
-        if type(data) is DictSchema:
-            return data
-        assert type(data) is dict
+    def build_schema(cls, model):
+        if type(model) is DictSchema:
+            return model
+
+        assert type(model) is dict
+        config = None
         mapping = {}
-        for key, value in data.iteritems():
+        for key, value in model.iteritems():
+            if key == config_key:
+                if config is not None:
+                    raise SchemaError(
+                        'More than 1 DictConfig found in dict: %s' % str(model)
+                    )
+                assert isinstance(value, DictConfig)
+                config = value
+
             mapping[key] = build_schema(value)
-        return cls(mapping)
+        return cls(mapping, config=config)
 
     def validate(self, data):
         problems = []
@@ -110,9 +139,10 @@ class DictSchema(Schema):
                     problems.append(p)
         for key in data:
             if key not in self.mapping:
-                problems.append(
-                    Problem('Unexpected Key', None, key)
-                )
+                if self.config.unexpected == 'raise':
+                    problems.append(
+                        Problem('Unexpected Key', None, key)
+                    )
         return problems
 
 

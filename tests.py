@@ -77,6 +77,36 @@ class TestListSchema(unittest.TestCase):
         child1_problems[1].add_path.assert_called_once_with(1)
 
 
+class TestDictConfig(unittest.TestCase):
+
+    def test_defaults(self):
+        conf = DictConfig()
+        self.assertEqual(conf.unexpected, 'raise')
+
+    def test_invalid_unexpected(self):
+        self.assertRaises(
+            AssertionError,
+            DictConfig,
+            unexpected='not an option'
+        )
+
+
+class IntegrationTestDictConfig(unittest.TestCase):
+
+    def setUp(self):
+        self.model = {
+            config_key: DictConfig(),
+            1: 1,
+            'a': 3,
+            'my_list': [],
+            'my_object': {}
+        }
+
+    def test_find_config(self):
+        schema = build_schema(self.model)
+        self.assertEqual(schema.config, self.model[config_key])
+
+
 class IntegrationTestDictSchema(unittest.TestCase):
 
     def setUp(self):
@@ -98,12 +128,21 @@ class IntegrationTestDictSchema(unittest.TestCase):
         problems = self.schema.validate(self.model)
         self.assertEqual(problems, [])
 
-    def test_unexpected_key(self):
+    def test_unexpected_raise(self):
+        self.model[config_key] = DictConfig(unexpected='raise')
+        schema = build_schema(self.model)
         self.model['new_key'] = 'a'
-        problems = self.schema.validate(self.model)
+        problems = schema.validate(self.model)
         self.assertEqual(repr(problems), repr([
             Problem('Unexpected Key', None, 'new_key', '')
         ]))
+
+    def test_unexpected_ignore(self):
+        self.model[config_key] = DictConfig(unexpected='ignore')
+        schema = build_schema(self.model)
+        self.model['new_key'] = 'a'
+        problems = schema.validate(self.model)
+        self.assertEqual(problems, [])
 
     def test_propagate(self):
         self.model[1] = 'a'
@@ -141,7 +180,6 @@ class IntegrationTestDictSchema(unittest.TestCase):
         self.assertEqual(repr(problems), repr([
             Problem('Missing Key', 'my_list', None, '')
         ]))
-
 
 
 class IntegrationTestNested(unittest.TestCase):
