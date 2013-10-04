@@ -17,11 +17,11 @@ class Schema(object):
 
 
 class Problem(object):
-    def __init__(self, reason, expected, actual):
+    def __init__(self, reason, expected, actual, path=''):
         self.reason = reason
         self.expected = expected
         self.actual = actual
-        self.path = ''
+        self.path = path
 
     def add_path(self, node):
         if self.path != '':
@@ -36,6 +36,19 @@ class Problem(object):
             expected=self.expected,
             actual=self.actual
         )
+
+
+class ValueSchema(Schema):
+
+    def __init__(self, value):
+        self.value = value
+
+    def validate(self, data):
+        problems = []
+        if type(data) is not type(self.value):
+            problems.append(Problem('Invalid Type', type(self.value), type(data)))
+        return problems
+
 
 class ListSchema(Schema):
 
@@ -65,6 +78,7 @@ class ListSchema(Schema):
                 p.add_path(i)
                 problems.append(p)
         return problems
+
 
 class DictSchema(Schema):
 
@@ -99,19 +113,6 @@ class DictSchema(Schema):
                 problems.append(
                     Problem('Unexpected Key', None, key)
                 )
-        return problems
-
-
-
-class ValueSchema(Schema):
-
-    def __init__(self, value):
-        self.value = value
-
-    def validate(self, data):
-        problems = []
-        if type(data) is not type(self.value):
-            problems.append(Problem('Invalid Type', type(self.value), type(data)))
         return problems
 
 
