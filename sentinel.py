@@ -69,7 +69,10 @@ class Problem(object):
         self.path = ''
 
     def add_path(self, node):
-        self.path = str(node) + '.' + self.path
+        if self.path != '':
+            self.path = str(node) + '.' + self.path
+        else:
+            self.path = str(node)
 
     def __repr__(self):
         return "{path}: {reason}\n expected: {expected}\n   actual: {actual}".format(
@@ -125,23 +128,22 @@ class DictSchema(Schema):
 
     def validate(self, data):
         problems = []
-        if sorted(data.keys()) != sorted(self.mapping.keys()):
-            for key in self.mapping:
-                if key not in data:
-                    problems.append(
-                        #TODO: Missing None key would show weird
-                        Problem('Missing Key', key, None)
-                    )
-                else:
-                    child_problems = self.mapping[key].validate(data[key])
-                    for p in child_problems:
-                        p.add_path(key)
-                        problems.append(p)
-            for key in data:
-                if key not in self.mapping:
-                    problems.append(
-                        Problem('Unexpected Key', None, key)
-                    )
+        for key in self.mapping:
+            if key not in data:
+                problems.append(
+                    #TODO: Missing None key would show weird
+                    Problem('Missing Key', key, None)
+                )
+            else:
+                child_problems = self.mapping[key].validate(data[key])
+                for p in child_problems:
+                    p.add_path(key)
+                    problems.append(p)
+        for key in data:
+            if key not in self.mapping:
+                problems.append(
+                    Problem('Unexpected Key', None, key)
+                )
         return problems
 
 
