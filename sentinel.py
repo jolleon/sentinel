@@ -114,14 +114,10 @@ class DictSchema(Schema):
         mapping = {}
         for key, value in model.iteritems():
             if key == config_key:
-                if config is not None:
-                    raise SchemaError(
-                        'More than 1 DictConfig found in dict: %s' % str(model)
-                    )
                 assert isinstance(value, DictConfig)
                 config = value
-
-            mapping[key] = build_schema(value)
+            else:
+                mapping[key] = build_schema(value)
         return cls(mapping, config=config)
 
     def validate(self, data):
