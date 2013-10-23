@@ -10,10 +10,9 @@ class SchemaError(Exception):
 
 
 class Problem(object):
-    def __init__(self, reason, expected, actual, path=''):
+    def __init__(self, error, reason, path=''):
+        self.error = error
         self.reason = reason
-        self.expected = expected
-        self.actual = actual
         self.path = path
 
     def add_path(self, node):
@@ -22,14 +21,24 @@ class Problem(object):
         else:
             self.path = str(node)
 
+    def __eq__(self, other):
+        return self.error == other.error and self.reason == other.reason and self.path == other.path
+
     def __repr__(self):
-        return "{path}: {reason} (expected={expected},  actual={actual})".format(
+        return "{path}: {error}: {reason}".format(
             path=self.path,
+            error=self.error,
             reason=self.reason,
-            expected=self.expected,
-            actual=self.actual
         )
 
+
+class InvalidTypeProblem(Problem):
+    error = 'Invalid Type'
+    reason = 'expected={expected}, actual={actual}'
+
+    def __init__(self, expected, actual, **kwargs):
+        reason = self.reason.format(expected=expected, actual=actual)
+        super(InvalidTypeProblem, self).__init__(self.error, reason, **kwargs)
 
 
 class Schema(object):
@@ -52,7 +61,7 @@ class ValueSchema(Schema):
     def validate(self, data):
         problems = []
         if type(data) is not type(self.value):
-            problems.append(Problem('Invalid Type', type(self.value), type(data)))
+            problems.append(InvalidTypeProblem(type(self.value), type(data)))
         return problems
 
 
@@ -76,7 +85,10 @@ class ListSchema(Schema):
         problems = []
         if len(data) != len(self.children):
             problems.append(
-                Problem('Different Lengths', len(self.children), len(data))
+                Problem(
+                    'Different Lengths',
+                    'expected=%d, actual=%d' % (len(self.children), len(data))
+                )
             )
         for i, (child, data_child) in enumerate(zip(self.children, data)):
             child_problems = child.validate(data_child)
@@ -125,8 +137,7 @@ class DictSchema(Schema):
         for key in self.mapping:
             if key not in data:
                 problems.append(
-                    #TODO: Missing None key would show weird
-                    Problem('Missing Key', key, None)
+                    Problem('Missing Key', str(key))
                 )
             else:
                 child_problems = self.mapping[key].validate(data[key])
@@ -137,7 +148,7 @@ class DictSchema(Schema):
             if key not in self.mapping:
                 if self.config.unexpected == 'raise':
                     problems.append(
-                        Problem('Unexpected Key', None, key)
+                        Problem('Unexpected Key', str(key))
                     )
         return problems
 

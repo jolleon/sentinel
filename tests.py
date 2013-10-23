@@ -134,9 +134,9 @@ class IntegrationTestDictSchema(unittest.TestCase):
         schema = build_schema(self.model)
         self.data['new_key'] = 'a'
         problems = schema.validate(self.data)
-        self.assertEqual(repr(problems), repr([
-            Problem('Unexpected Key', None, 'new_key', '')
-        ]))
+        self.assertEqual(problems, [
+            Problem('Unexpected Key','new_key', path='')
+        ])
 
     def test_unexpected_ignore(self):
         self.model[config_key] = DictConfig(unexpected='ignore')
@@ -148,39 +148,39 @@ class IntegrationTestDictSchema(unittest.TestCase):
     def test_propagate(self):
         self.data[1] = 'a'
         problems = self.schema.validate(self.data)
-        self.assertEqual(repr(problems), repr([
-            Problem('Invalid Type', int, str, '1')
-        ]))
+        self.assertEqual(problems, [
+            InvalidTypeProblem(int, str, path='1')
+        ])
 
     def test_propagate_2(self):
         self.data[1] = 'a'
         self.data['a'] = 'a'
         problems = self.schema.validate(self.data)
-        self.assertEqual(repr(problems), repr([
-            Problem('Invalid Type', int, str, 'a'),
-            Problem('Invalid Type', int, str, '1'),
-        ]))
+        self.assertEqual(problems, [
+            InvalidTypeProblem(int, str, path='a'),
+            InvalidTypeProblem(int, str, path='1'),
+        ])
 
     def test_missing_key_value(self):
         del self.data['a']
         problems = self.schema.validate(self.data)
-        self.assertEqual(repr(problems), repr([
-            Problem('Missing Key', 'a', None, '')
-        ]))
+        self.assertEqual(problems, [
+            Problem('Missing Key', 'a', '')
+        ])
 
     def test_missing_key_dict(self):
         del self.data['my_object']
         problems = self.schema.validate(self.data)
-        self.assertEqual(repr(problems), repr([
-            Problem('Missing Key', 'my_object', None, '')
-        ]))
+        self.assertEqual(problems, [
+            Problem('Missing Key', 'my_object', '')
+        ])
 
     def test_missing_key_list(self):
         del self.data['my_list']
         problems = self.schema.validate(self.data)
-        self.assertEqual(repr(problems), repr([
-            Problem('Missing Key', 'my_list', None, '')
-        ]))
+        self.assertEqual(problems, [
+            Problem('Missing Key', 'my_list', '')
+        ])
 
 
 class IntegrationTestNested(unittest.TestCase):
@@ -225,32 +225,32 @@ class IntegrationTestNested(unittest.TestCase):
     def test_invalid_type_dict_list(self):
         self.model['my_object']['other_list'][0] = 2
         problems = self.schema.validate(self.model)
-        self.assertEqual(repr(problems), repr([
-            Problem('Invalid Type', str, int, 'my_object.other_list.0')
-        ]))
+        self.assertEqual(problems, [
+            InvalidTypeProblem(str, int, path='my_object.other_list.0')
+        ])
 
     def test_invalid_type_dict_list_dict(self):
         self.model['my_object'][3][0]['a'] = 'a'
         problems = self.schema.validate(self.model)
-        self.assertEqual(repr(problems), repr([
-            Problem('Invalid Type', int, str, 'my_object.3.0.a')
-        ]))
+        self.assertEqual(problems, [
+            InvalidTypeProblem(int, str, path='my_object.3.0.a')
+        ])
 
     def test_unexpected_key_dict_list_dict(self):
         self.model['my_object'][3][0]['b'] = 'a'
         problems = self.schema.validate(self.model)
-        self.assertEqual(repr(problems), repr([
-            Problem('Unexpected Key', None, 'b', 'my_object.3.0')
-        ]))
+        self.assertEqual(problems, [
+            Problem('Unexpected Key', 'b', 'my_object.3.0')
+        ])
 
     def test_invalid_type_unexpected_key_dict_list_dict(self):
         self.model['my_object'][3][0]['b'] = 'a'
         self.model['my_object'][3][0]['a'] = 'a'
         problems = self.schema.validate(self.model)
-        self.assertEqual(repr(problems), repr([
-            Problem('Invalid Type', int, str, 'my_object.3.0.a'),
-            Problem('Unexpected Key', None, 'b', 'my_object.3.0')
-        ]))
+        self.assertEqual(problems, [
+            InvalidTypeProblem(int, str, path='my_object.3.0.a'),
+            Problem('Unexpected Key', 'b', 'my_object.3.0')
+        ])
 
 if __name__ == '__main__':
     unittest.main()
