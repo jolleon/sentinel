@@ -144,9 +144,9 @@ class DictSchema(Schema):
                 for p in child_problems:
                     p.add_path(key)
                     problems.append(p)
-        for key in data:
-            if key not in self.mapping:
-                if self.config.unexpected == 'raise':
+        if self.config.unexpected == 'raise':
+            for key in data:
+                if key not in self.mapping:
                     problems.append(
                         Problem('Unexpected Key', str(key))
                     )
