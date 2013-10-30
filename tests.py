@@ -1,5 +1,4 @@
 import unittest
-import mock
 from mock import Mock
 
 from sentinel import *
@@ -41,6 +40,74 @@ class TestValueSchema(unittest.TestCase):
     def test_invalid(self):
         self._test_invalid(1, 'sad')
         self._test_invalid('asd', None)
+
+
+class TestListConfig(unittest.TestCase):
+
+    def test_defaults(self):
+        conf = ListConfig()
+        self.assertEqual(conf.min_length, None)
+        self.assertEqual(conf.max_length, None)
+
+
+class TestListSchema(unittest.TestCase):
+
+    def _test_with_config(self, config, data, problems):
+        child_schema = Mock()
+        child_schema.validate.return_value = []
+        schema = ListSchema(child_schema, config)
+        self.assertEqual(
+            problems,
+            schema.validate(data)
+        )
+
+    def test_min_length_invalid(self):
+        config = ListConfig(min_length=2)
+        data = [Mock()]
+        problems = [Problem('List is too short', 'min=2, actual=1', '')]
+        self._test_with_config(config, data, problems)
+
+    def test_min_length_valid(self):
+        config = ListConfig(min_length=2)
+        self._test_with_config(config, [Mock(), Mock()], [])
+
+    def test_max_length_invalid(self):
+        config = ListConfig(max_length=2)
+        data = [Mock(), Mock(), Mock()]
+        problems = [Problem('List is too long', 'max=2, actual=3', '')]
+        self._test_with_config(config, data, problems)
+
+    def test_max_length_valid(self):
+        config = ListConfig(max_length=2)
+        self._test_with_config(config, [Mock(), Mock()], [])
+
+    def test_max_length_valid_empty(self):
+        config = ListConfig(max_length=2)
+        self._test_with_config(config, [], [])
+
+    def test_propagate(self):
+        child_schema = Mock()
+        child_schema.validate.return_value = [Problem('bla', 'bli', '')]
+        schema = ListSchema(child_schema)
+        self.assertEqual(
+            [Problem('bla', 'bli', '0')],
+            schema.validate([Mock()])
+        )
+
+    def test_propagate_multiple(self):
+        child_schema = Mock()
+        child_schema.validate.side_effect = [
+            [Problem('bla0', 'bli', '')],
+            [Problem('bla10', 'bli', ''), Problem('bla11', 'bli', '')]
+        ]
+        schema = ListSchema(child_schema)
+        self.assertEqual([
+                Problem('bla0', 'bli', '0'),
+                Problem('bla10', 'bli', '1'),
+                Problem('bla11', 'bli', '1')
+            ],
+            schema.validate([Mock(), Mock()])
+        )
 
 
 class TestTupleSchema(unittest.TestCase):

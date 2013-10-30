@@ -65,6 +65,63 @@ class ValueSchema(Schema):
         return problems
 
 
+class ListConfig(namedtuple('ListConfig', [
+    'min_length', 'max_length'
+    ])):
+    def __new__(cls, min_length=None, max_length=None):
+        return super(ListConfig, cls).__new__(
+            cls,
+            min_length=min_length,
+            max_length=max_length
+        )
+
+
+class ListSchema(Schema):
+
+    def __init__(self, child_schema, config=None):
+        self.child_schema = child_schema
+        if config is None:
+            config = ListConfig()
+        self.config = config
+
+    @classmethod
+    def build_schema(cls, data):
+        if type(data) is ListSchema:
+            return data
+        assert type(data) is list
+        # model should contain only 1 item and optionally a config
+        assert len(data) == 1 or (len(data) == 2 and isinstance(data[1], ListConfig))
+        child_schema = build_schema(data[0])
+        if len(data) == 2:
+            config = data[1]
+        else:
+            config = ListConfig()
+        return cls(child_schema, config)
+
+    def validate(self, data):
+        problems = []
+        if self.config.min_length is not None and len(data) < self.config.min_length:
+            problems.append(
+                Problem(
+                    'List is too short',
+                    'min=%d, actual=%d' % (self.config.min_length, len(data))
+                )
+            )
+        if self.config.max_length is not None and len(data) > self.config.max_length:
+            problems.append(
+                Problem(
+                    'List is too long',
+                    'max=%d, actual=%d' % (self.config.max_length, len(data))
+                )
+            )
+        for i, child in enumerate(data):
+            child_problems = self.child_schema.validate(child)
+            for p in child_problems:
+                p.add_path(i)
+                problems.append(p)
+        return problems
+
+
 class TupleSchema(Schema):
 
     def __init__(self, children):
