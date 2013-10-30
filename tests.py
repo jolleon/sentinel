@@ -43,11 +43,11 @@ class TestValueSchema(unittest.TestCase):
         self._test_invalid('asd', None)
 
 
-class TestListSchema(unittest.TestCase):
+class TestTupleSchema(unittest.TestCase):
 
     def test_validate_valid(self):
         children = [Mock(), Mock()]
-        schema = ListSchema(children)
+        schema = TupleSchema(children)
         data = [Mock(), Mock()]
 
         children[0].validate.return_value = []
@@ -61,7 +61,7 @@ class TestListSchema(unittest.TestCase):
 
     def test_validate_propagates(self):
         children = [Mock(), Mock()]
-        schema = ListSchema(children)
+        schema = TupleSchema(children)
         data = [Mock(), Mock()]
 
         children[0].validate.return_value = []
@@ -98,7 +98,7 @@ class IntegrationTestDictConfig(unittest.TestCase):
             config_key: DictConfig(),
             1: 1,
             'a': 3,
-            'my_list': [],
+            'my_tuple': (),
             'my_object': {}
         }
 
@@ -113,7 +113,7 @@ class IntegrationTestDictSchema(unittest.TestCase):
         self.model = {
             1: 1,
             'a': 3,
-            'my_list': [],
+            'my_tuple': (),
             'my_object': {}
         }
         self.data = self.model.copy() #TODO: deepcopy?
@@ -175,11 +175,11 @@ class IntegrationTestDictSchema(unittest.TestCase):
             Problem('Missing Key', 'my_object', '')
         ])
 
-    def test_missing_key_list(self):
-        del self.data['my_list']
+    def test_missing_key_tuple(self):
+        del self.data['my_tuple']
         problems = self.schema.validate(self.data)
         self.assertEqual(problems, [
-            Problem('Missing Key', 'my_list', '')
+            Problem('Missing Key', 'my_tuple', '')
         ])
 
 
@@ -190,18 +190,18 @@ class IntegrationTestNested(unittest.TestCase):
         self.model = {
             1: 1,
             'asd': None,
-            'my_list': [1, 2],
+            'my_tuple': (1, 2),
             'my_object': {
-                'other_list': ['a'],
+                'other_tuple': ('a',),
                 2: 4,
                 'other_object': {
                     2: 4
                 },
-                3: [
+                3: (
                     {
                         'a': 3
                     }
-                ]
+                ,)
             }
         }
 
@@ -218,32 +218,32 @@ class IntegrationTestNested(unittest.TestCase):
         problems = self.schema.validate(self.model)
         self.assertEqual(problems, [])
 
-        self.model['my_list'][0] = 4
+        self.model['my_tuple'] = (4, 5)
         problems = self.schema.validate(self.model)
         self.assertEqual(problems, [])
 
-    def test_invalid_type_dict_list(self):
-        self.model['my_object']['other_list'][0] = 2
+    def test_invalid_type_dict_tuple(self):
+        self.model['my_object']['other_tuple'] = (2,)
         problems = self.schema.validate(self.model)
         self.assertEqual(problems, [
-            InvalidTypeProblem(str, int, path='my_object.other_list.0')
+            InvalidTypeProblem(str, int, path='my_object.other_tuple.0')
         ])
 
-    def test_invalid_type_dict_list_dict(self):
+    def test_invalid_type_dict_tuple_dict(self):
         self.model['my_object'][3][0]['a'] = 'a'
         problems = self.schema.validate(self.model)
         self.assertEqual(problems, [
             InvalidTypeProblem(int, str, path='my_object.3.0.a')
         ])
 
-    def test_unexpected_key_dict_list_dict(self):
+    def test_unexpected_key_dict_tuple_dict(self):
         self.model['my_object'][3][0]['b'] = 'a'
         problems = self.schema.validate(self.model)
         self.assertEqual(problems, [
             Problem('Unexpected Key', 'b', 'my_object.3.0')
         ])
 
-    def test_invalid_type_unexpected_key_dict_list_dict(self):
+    def test_invalid_type_unexpected_key_dict_tuple_dict(self):
         self.model['my_object'][3][0]['b'] = 'a'
         self.model['my_object'][3][0]['a'] = 'a'
         problems = self.schema.validate(self.model)
@@ -251,6 +251,14 @@ class IntegrationTestNested(unittest.TestCase):
             InvalidTypeProblem(int, str, path='my_object.3.0.a'),
             Problem('Unexpected Key', 'b', 'my_object.3.0')
         ])
+
+    def test_invalid_length_dict_tuple(self):
+        self.model['my_tuple'] = (2,)
+        problems = self.schema.validate(self.model)
+        self.assertEqual(problems, [
+            Problem('Different Lengths', 'expected=2, actual=1', 'my_tuple')
+        ])
+
 
 if __name__ == '__main__':
     unittest.main()

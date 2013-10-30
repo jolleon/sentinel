@@ -65,16 +65,16 @@ class ValueSchema(Schema):
         return problems
 
 
-class ListSchema(Schema):
+class TupleSchema(Schema):
 
     def __init__(self, children):
         self.children = children
 
     @classmethod
     def build_schema(cls, data):
-        if type(data) is ListSchema:
+        if type(data) is TupleSchema:
             return data
-        assert type(data) is list
+        assert type(data) is tuple
         children = []
         for item in data:
             item_schema = build_schema(item)
@@ -157,8 +157,8 @@ class DictSchema(Schema):
 def build_schema(data):
     if isinstance(data, Schema):
         return data
-    if type(data) is list:
-        return ListSchema.build_schema(data)
+    if type(data) is tuple:
+        return TupleSchema.build_schema(data)
     if type(data) is dict:
         return DictSchema.build_schema(data)
     return ValueSchema(data)
