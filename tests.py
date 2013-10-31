@@ -1,5 +1,6 @@
 import unittest
 from mock import Mock
+from mock import patch
 
 from sentinel import *
 
@@ -107,6 +108,40 @@ class TestListSchema(unittest.TestCase):
                 Problem('bla11', 'bli', '1')
             ],
             schema.validate([Mock(), Mock()])
+        )
+
+
+class IntegrationTestListSchema(unittest.TestCase):
+
+    def test_build_schema_no_config(self):
+        schema = ListSchema.build_schema([1])
+        # created child schema
+        self.assertEqual(ValueSchema, type(schema.child_schema))
+        # default config
+        self.assertEqual(ListConfig(), schema.config)
+
+    def test_build_schema_with_config(self):
+        config = ListConfig(min_length=5)
+        schema = ListSchema.build_schema([2, config])
+        self.assertEqual(ValueSchema, type(schema.child_schema))
+        self.assertEqual(config, schema.config)
+
+    def test_build_schema_invalid(self):
+        config = ListConfig(min_length=5)
+        self.assertRaises(
+            AssertionError,
+            ListSchema.build_schema,
+            [config, 3]
+        )
+        self.assertRaises(
+            AssertionError,
+            ListSchema.build_schema,
+            [2, 3]
+        )
+        self.assertRaises(
+            AssertionError,
+            ListSchema.build_schema,
+            []
         )
 
 
