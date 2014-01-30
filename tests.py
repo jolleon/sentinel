@@ -27,8 +27,8 @@ class TestSchema(unittest.TestCase):
 class TestValueNode(unittest.TestCase):
 
     def _test_valid(self, value, data):
-        schema = ValueNode.build(value)
-        problems = schema.validate(data)
+        node = ValueNode.build(value)
+        problems = node.validate(data)
         self.assertEqual(problems, [])
 
     def test_valid_int(self):
@@ -37,8 +37,8 @@ class TestValueNode(unittest.TestCase):
         self._test_valid(3, 3)
 
     def _test_invalid(self, value, data):
-        schema = ValueNode.build(value)
-        problems = schema.validate(data)
+        node = ValueNode.build(value)
+        problems = node.validate(data)
         assert len(problems) > 0
 
     def test_invalid(self):
@@ -57,12 +57,12 @@ class TestListConfig(unittest.TestCase):
 class TestListNode(unittest.TestCase):
 
     def _test_with_config(self, config, data, problems):
-        child_schema = Mock()
-        child_schema.validate.return_value = []
-        schema = ListNode(child_schema, config)
+        child_node = Mock()
+        child_node.validate.return_value = []
+        node = ListNode(child_node, config)
         self.assertEqual(
             problems,
-            schema.validate(data)
+            node.validate(data)
         )
 
     def test_min_length_invalid(self):
@@ -90,44 +90,44 @@ class TestListNode(unittest.TestCase):
         self._test_with_config(config, [], [])
 
     def test_propagate(self):
-        child_schema = Mock()
-        child_schema.validate.return_value = [Problem('bla', 'bli', '')]
-        schema = ListNode(child_schema)
+        child_node = Mock()
+        child_node.validate.return_value = [Problem('bla', 'bli', '')]
+        node = ListNode(child_node)
         self.assertEqual(
             [Problem('bla', 'bli', '0')],
-            schema.validate([Mock()])
+            node.validate([Mock()])
         )
 
     def test_propagate_multiple(self):
-        child_schema = Mock()
-        child_schema.validate.side_effect = [
+        child_node = Mock()
+        child_node.validate.side_effect = [
             [Problem('bla0', 'bli', '')],
             [Problem('bla10', 'bli', ''), Problem('bla11', 'bli', '')]
         ]
-        schema = ListNode(child_schema)
+        node = ListNode(child_node)
         self.assertEqual([
                 Problem('bla0', 'bli', '0'),
                 Problem('bla10', 'bli', '1'),
                 Problem('bla11', 'bli', '1')
             ],
-            schema.validate([Mock(), Mock()])
+            node.validate([Mock(), Mock()])
         )
 
 
 class IntegrationTestListNode(unittest.TestCase):
 
     def test_build_no_config(self):
-        schema = ListNode.build([1])
-        # created child schema
-        self.assertEqual(ValueNode, type(schema.child_schema))
+        node = ListNode.build([1])
+        # created child node
+        self.assertEqual(ValueNode, type(node.child_node))
         # default config
-        self.assertEqual(ListConfig(), schema.config)
+        self.assertEqual(ListConfig(), node.config)
 
     def test_build_with_config(self):
         config = ListConfig(min_length=5)
-        schema = ListNode.build([2, config])
-        self.assertEqual(ValueNode, type(schema.child_schema))
-        self.assertEqual(config, schema.config)
+        node = ListNode.build([2, config])
+        self.assertEqual(ValueNode, type(node.child_node))
+        self.assertEqual(config, node.config)
 
     def test_build_invalid(self):
         config = ListConfig(min_length=5)
@@ -173,8 +173,8 @@ class IntegrationTestDictConfig(unittest.TestCase):
         }
 
     def test_find_config(self):
-        schema = build_schema(self.model)
-        self.assertEqual(schema.config, self.model[config_key])
+        node = build_node(self.model)
+        self.assertEqual(node.config, self.model[config_key])
 
 
 class IntegrationTestDictNode(unittest.TestCase):
@@ -186,37 +186,37 @@ class IntegrationTestDictNode(unittest.TestCase):
             'my_object': {}
         }
         self.data = self.model.copy() #TODO: deepcopy?
-        self.schema = build_schema(self.model)
+        self.node = build_node(self.model)
 
     def test_valid_self(self):
-        problems = self.schema.validate(self.model)
+        problems = self.node.validate(self.model)
         self.assertEqual(problems, [])
 
     def test_valid(self):
         self.data[1] = 2
         self.data['a'] = 54
-        problems = self.schema.validate(self.data)
+        problems = self.node.validate(self.data)
         self.assertEqual(problems, [])
 
     def test_unexpected_raise(self):
         self.model[config_key] = DictConfig(unexpected='raise')
-        schema = build_schema(self.model)
+        node = build_node(self.model)
         self.data['new_key'] = 'a'
-        problems = schema.validate(self.data)
+        problems = node.validate(self.data)
         self.assertEqual(problems, [
             Problem('Unexpected Key','new_key', path='')
         ])
 
     def test_unexpected_ignore(self):
         self.model[config_key] = DictConfig(unexpected='ignore')
-        schema = build_schema(self.model)
+        node = build_node(self.model)
         self.data['new_key'] = 'a'
-        problems = schema.validate(self.data)
+        problems = node.validate(self.data)
         self.assertEqual(problems, [])
 
     def test_propagate(self):
         self.data[1] = 'a'
-        problems = self.schema.validate(self.data)
+        problems = self.node.validate(self.data)
         self.assertEqual(problems, [
             InvalidTypeProblem(int, str, path='1')
         ])
@@ -224,7 +224,7 @@ class IntegrationTestDictNode(unittest.TestCase):
     def test_propagate_2(self):
         self.data[1] = 'a'
         self.data['a'] = 'a'
-        problems = self.schema.validate(self.data)
+        problems = self.node.validate(self.data)
         self.assertEqual(problems, [
             InvalidTypeProblem(int, str, path='a'),
             InvalidTypeProblem(int, str, path='1'),
@@ -232,14 +232,14 @@ class IntegrationTestDictNode(unittest.TestCase):
 
     def test_missing_key_value(self):
         del self.data['a']
-        problems = self.schema.validate(self.data)
+        problems = self.node.validate(self.data)
         self.assertEqual(problems, [
             Problem('Missing Key', 'a', '')
         ])
 
     def test_missing_key_dict(self):
         del self.data['my_object']
-        problems = self.schema.validate(self.data)
+        problems = self.node.validate(self.data)
         self.assertEqual(problems, [
             Problem('Missing Key', 'my_object', '')
         ])

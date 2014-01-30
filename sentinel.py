@@ -100,8 +100,8 @@ class DictConfig(config(unexpected='raise')):
 
 class ListNode(Node):
 
-    def __init__(self, child_schema, config=None):
-        self.child_schema = child_schema
+    def __init__(self, child_node, config=None):
+        self.child_node = child_node
         if config is None:
             config = ListConfig()
         self.config = config
@@ -111,12 +111,12 @@ class ListNode(Node):
         assert type(data) is list
         # model should contain only 1 item and optionally a config
         assert len(data) == 1 or (len(data) == 2 and isinstance(data[1], ListConfig))
-        child_schema = build_schema(data[0])
+        child_node = build_node(data[0])
         if len(data) == 2:
             config = data[1]
         else:
             config = ListConfig()
-        return cls(child_schema, config)
+        return cls(child_node, config)
 
     def validate(self, data):
         problems = []
@@ -135,7 +135,7 @@ class ListNode(Node):
                 )
             )
         for i, child in enumerate(data):
-            child_problems = self.child_schema.validate(child)
+            child_problems = self.child_node.validate(child)
             for p in child_problems:
                 p.add_path(i)
                 problems.append(p)
@@ -162,7 +162,7 @@ class DictNode(Node):
                 assert isinstance(value, DictConfig)
                 config = value
             else:
-                mapping[key] = build_schema(value)
+                mapping[key] = build_node(value)
         return cls(mapping, config=config)
 
     def validate(self, data):
@@ -191,8 +191,8 @@ rules = [
     (lambda model: type(model) is dict, DictNode),
 ]
 
-def build_schema(model):
-    if isinstance(model, Schema):
+def build_node(model):
+    if isinstance(model, Node):
         return model
     node_type = ValueNode
     for rule in rules:
