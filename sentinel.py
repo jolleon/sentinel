@@ -43,14 +43,14 @@ class InvalidTypeProblem(Problem):
 
 class Schema(object):
 
-    def serialize(self, data):
-        problems = self.validate(data)
+    def __init__(self, atype):
+        self.type = atype
+
+    def validate(self, data):
+        problems = self.type.validate(data)
         if len(problems) > 0:
             raise Invalid(problems)
         return data
-
-    def deserialize(self, data):
-        return self.serialize(data)
 
 
 class Type(object):

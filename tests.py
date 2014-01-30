@@ -8,17 +8,20 @@ from sentinel import *
 class TestSchema(unittest.TestCase):
 
     def test_serialize_invalid(self):
-        schema = Schema()
-        schema.validate = Mock()
-        schema.validate.return_value = [Mock()]
-        self.assertRaises(Invalid, schema.serialize, Mock())
+        mock_type = Mock()
+        mock_data = Mock()
+        schema = Schema(mock_type)
+        mock_type.validate.return_value = [Mock()]
+        self.assertRaises(Invalid, schema.validate, mock_data)
+        mock_type.validate.assert_called_once_with(mock_data)
 
     def test_serialize_valid(self):
-        schema = Schema()
-        schema.validate = Mock()
-        schema.validate.return_value = []
-        data = Mock()
-        self.assertEqual(data, schema.serialize(data))
+        mock_type = Mock()
+        mock_data = Mock()
+        schema = Schema(mock_type)
+        mock_type.validate.return_value = []
+        self.assertEqual(mock_data, schema.validate(mock_data))
+        mock_type.validate.assert_called_once_with(mock_data)
 
 
 class TestValueType(unittest.TestCase):
