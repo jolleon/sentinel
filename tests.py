@@ -21,10 +21,10 @@ class TestSchema(unittest.TestCase):
         self.assertEqual(data, schema.serialize(data))
 
 
-class TestValueSchema(unittest.TestCase):
+class TestValueType(unittest.TestCase):
 
     def _test_valid(self, value, data):
-        schema = ValueSchema(value)
+        schema = ValueType(value)
         problems = schema.validate(data)
         self.assertEqual(problems, [])
 
@@ -34,7 +34,7 @@ class TestValueSchema(unittest.TestCase):
         self._test_valid(3, 3)
 
     def _test_invalid(self, value, data):
-        schema = ValueSchema(value)
+        schema = ValueType(value)
         problems = schema.validate(data)
         assert len(problems) > 0
 
@@ -51,12 +51,12 @@ class TestListConfig(unittest.TestCase):
         self.assertEqual(conf.max_length, None)
 
 
-class TestListSchema(unittest.TestCase):
+class TestListType(unittest.TestCase):
 
     def _test_with_config(self, config, data, problems):
         child_schema = Mock()
         child_schema.validate.return_value = []
-        schema = ListSchema(child_schema, config)
+        schema = ListType(child_schema, config)
         self.assertEqual(
             problems,
             schema.validate(data)
@@ -89,7 +89,7 @@ class TestListSchema(unittest.TestCase):
     def test_propagate(self):
         child_schema = Mock()
         child_schema.validate.return_value = [Problem('bla', 'bli', '')]
-        schema = ListSchema(child_schema)
+        schema = ListType(child_schema)
         self.assertEqual(
             [Problem('bla', 'bli', '0')],
             schema.validate([Mock()])
@@ -101,7 +101,7 @@ class TestListSchema(unittest.TestCase):
             [Problem('bla0', 'bli', '')],
             [Problem('bla10', 'bli', ''), Problem('bla11', 'bli', '')]
         ]
-        schema = ListSchema(child_schema)
+        schema = ListType(child_schema)
         self.assertEqual([
                 Problem('bla0', 'bli', '0'),
                 Problem('bla10', 'bli', '1'),
@@ -111,36 +111,36 @@ class TestListSchema(unittest.TestCase):
         )
 
 
-class IntegrationTestListSchema(unittest.TestCase):
+class IntegrationTestListType(unittest.TestCase):
 
-    def test_build_schema_no_config(self):
-        schema = ListSchema.build_schema([1])
+    def test_build_no_config(self):
+        schema = ListType.build([1])
         # created child schema
-        self.assertEqual(ValueSchema, type(schema.child_schema))
+        self.assertEqual(ValueType, type(schema.child_schema))
         # default config
         self.assertEqual(ListConfig(), schema.config)
 
-    def test_build_schema_with_config(self):
+    def test_build_with_config(self):
         config = ListConfig(min_length=5)
-        schema = ListSchema.build_schema([2, config])
-        self.assertEqual(ValueSchema, type(schema.child_schema))
+        schema = ListType.build([2, config])
+        self.assertEqual(ValueType, type(schema.child_schema))
         self.assertEqual(config, schema.config)
 
-    def test_build_schema_invalid(self):
+    def test_build_invalid(self):
         config = ListConfig(min_length=5)
         self.assertRaises(
             AssertionError,
-            ListSchema.build_schema,
+            ListType.build,
             [config, 3]
         )
         self.assertRaises(
             AssertionError,
-            ListSchema.build_schema,
+            ListType.build,
             [2, 3]
         )
         self.assertRaises(
             AssertionError,
-            ListSchema.build_schema,
+            ListType.build,
             []
         )
 
@@ -174,7 +174,7 @@ class IntegrationTestDictConfig(unittest.TestCase):
         self.assertEqual(schema.config, self.model[config_key])
 
 
-class IntegrationTestDictSchema(unittest.TestCase):
+class IntegrationTestDictType(unittest.TestCase):
 
     def setUp(self):
         self.model = {

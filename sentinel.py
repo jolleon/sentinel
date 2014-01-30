@@ -53,7 +53,11 @@ class Schema(object):
         return self.serialize(data)
 
 
-class ValueSchema(Schema):
+class Type(object):
+    pass
+
+
+class ValueType(Type):
 
     def __init__(self, value):
         self.value = value
@@ -90,7 +94,7 @@ class DictConfig(config(unexpected='raise')):
         return conf
 
 
-class ListSchema(Schema):
+class ListType(Type):
 
     def __init__(self, child_schema, config=None):
         self.child_schema = child_schema
@@ -100,7 +104,7 @@ class ListSchema(Schema):
 
     @classmethod
     def build(cls, data):
-        if type(data) is ListSchema:
+        if type(data) is ListType:
             return data
         assert type(data) is list
         # model should contain only 1 item and optionally a config
@@ -138,7 +142,7 @@ class ListSchema(Schema):
 
 config_key = 'sentinelconfignooneusethatihope'
 
-class DictSchema(Schema):
+class DictType(Type):
 
     def __init__(self, mapping, config=None):
         self.mapping = mapping
@@ -148,7 +152,7 @@ class DictSchema(Schema):
 
     @classmethod
     def build(cls, model):
-        if type(model) is DictSchema:
+        if type(model) is DictType:
             return model
 
         assert type(model) is dict
@@ -188,5 +192,5 @@ def build_schema(data):
     if isinstance(data, Schema):
         return data
     if type(data) is dict:
-        return DictSchema.build(data)
-    return ValueSchema(data)
+        return DictType.build(data)
+    return ValueType(data)
