@@ -99,7 +99,7 @@ class ListSchema(Schema):
         self.config = config
 
     @classmethod
-    def build_schema(cls, data):
+    def build(cls, data):
         if type(data) is ListSchema:
             return data
         assert type(data) is list
@@ -147,7 +147,7 @@ class DictSchema(Schema):
         self.config = config
 
     @classmethod
-    def build_schema(cls, model):
+    def build(cls, model):
         if type(model) is DictSchema:
             return model
 
@@ -188,5 +188,5 @@ def build_schema(data):
     if isinstance(data, Schema):
         return data
     if type(data) is dict:
-        return DictSchema.build_schema(data)
+        return DictSchema.build(data)
     return ValueSchema(data)
