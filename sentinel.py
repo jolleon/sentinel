@@ -188,9 +188,19 @@ class DictType(Type):
 
 
 
-def build_schema(data):
-    if isinstance(data, Schema):
-        return data
-    if type(data) is dict:
-        return DictType.build(data)
-    return ValueType(data)
+rules = [
+    (lambda model: type(model) is dict, DictType),
+]
+
+def build_schema(model):
+    if isinstance(model, Schema):
+        return model
+    model_type = None
+    for rule in rules:
+        if rule[0](model):
+            model_type = rule[1]
+            break
+    if model_type == None:
+        return ValueType(model)
+    else:
+        return model_type.build(model)
