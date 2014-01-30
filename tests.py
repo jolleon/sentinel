@@ -27,7 +27,7 @@ class TestSchema(unittest.TestCase):
 class TestValueType(unittest.TestCase):
 
     def _test_valid(self, value, data):
-        schema = ValueType(value)
+        schema = ValueType.build(value)
         problems = schema.validate(data)
         self.assertEqual(problems, [])
 
@@ -37,7 +37,7 @@ class TestValueType(unittest.TestCase):
         self._test_valid(3, 3)
 
     def _test_invalid(self, value, data):
-        schema = ValueType(value)
+        schema = ValueType.build(value)
         problems = schema.validate(data)
         assert len(problems) > 0
 

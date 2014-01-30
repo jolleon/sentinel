@@ -59,13 +59,17 @@ class Type(object):
 
 class ValueType(Type):
 
-    def __init__(self, value):
-        self.value = value
+    def __init__(self, value_type):
+        self.type = value_type
+
+    @classmethod
+    def build(cls, model):
+        return cls(type(model))
 
     def validate(self, data):
         problems = []
-        if type(data) is not type(self.value):
-            problems.append(InvalidTypeProblem(type(self.value), type(data)))
+        if type(data) is not self.type:
+            problems.append(InvalidTypeProblem(self.type, type(data)))
         return problems
 
 
@@ -195,12 +199,9 @@ rules = [
 def build_schema(model):
     if isinstance(model, Schema):
         return model
-    model_type = None
+    model_type = ValueType
     for rule in rules:
         if rule[0](model):
             model_type = rule[1]
             break
-    if model_type == None:
-        return ValueType(model)
-    else:
-        return model_type.build(model)
+    return model_type.build(model)
