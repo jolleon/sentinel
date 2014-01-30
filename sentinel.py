@@ -136,39 +136,6 @@ class ListSchema(Schema):
         return problems
 
 
-class TupleSchema(Schema):
-
-    def __init__(self, children):
-        self.children = children
-
-    @classmethod
-    def build_schema(cls, data):
-        if type(data) is TupleSchema:
-            return data
-        assert type(data) is tuple
-        children = []
-        for item in data:
-            item_schema = build_schema(item)
-            children.append(item_schema)
-        return cls(children)
-
-    def validate(self, data):
-        problems = []
-        if len(data) != len(self.children):
-            problems.append(
-                Problem(
-                    'Different Lengths',
-                    'expected=%d, actual=%d' % (len(self.children), len(data))
-                )
-            )
-        for i, (child, data_child) in enumerate(zip(self.children, data)):
-            child_problems = child.validate(data_child)
-            for p in child_problems:
-                p.add_path(i)
-                problems.append(p)
-        return problems
-
-
 config_key = 'sentinelconfignooneusethatihope'
 
 class DictSchema(Schema):
@@ -220,8 +187,6 @@ class DictSchema(Schema):
 def build_schema(data):
     if isinstance(data, Schema):
         return data
-    if type(data) is tuple:
-        return TupleSchema.build_schema(data)
     if type(data) is dict:
         return DictSchema.build_schema(data)
     return ValueSchema(data)
