@@ -65,15 +65,29 @@ class ValueSchema(Schema):
         return problems
 
 
-class ListConfig(namedtuple('ListConfig', [
-    'min_length', 'max_length'
-    ])):
-    def __new__(cls, min_length=None, max_length=None):
-        return super(ListConfig, cls).__new__(
-            cls,
-            min_length=min_length,
-            max_length=max_length
-        )
+def config(**defaults):
+    options = ['validators'] + defaults.keys()
+
+    class Config(namedtuple('Config', options)):
+        def __new__(cls, validators=None, **kw):
+            kwargs = {}
+            kwargs.update(defaults)
+            kwargs.update(kw)
+            if validators is None:
+                validators = []
+            return super(Config, cls).__new__(cls, validators, **kwargs)
+
+    return Config
+
+Config = config()
+
+ListConfig = config(min_length=None, max_length=None)
+
+class DictConfig(config(unexpected='raise')):
+    def __new__(cls, **kw):
+        conf = super(DictConfig, cls).__new__(cls, **kw)
+        assert conf.unexpected in ['raise', 'ignore']
+        return conf
 
 
 class ListSchema(Schema):
@@ -153,14 +167,6 @@ class TupleSchema(Schema):
                 p.add_path(i)
                 problems.append(p)
         return problems
-
-
-class DictConfig(namedtuple('DictConfig', [
-    'unexpected',
-    ])):
-    def __new__(cls, unexpected='raise'):
-        assert unexpected in ['raise', 'ignore']
-        return super(DictConfig, cls).__new__(cls, unexpected)
 
 
 config_key = 'sentinelconfignooneusethatihope'
