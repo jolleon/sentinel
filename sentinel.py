@@ -43,21 +43,21 @@ class InvalidTypeProblem(Problem):
 
 class Schema(object):
 
-    def __init__(self, atype):
-        self.type = atype
+    def __init__(self, node):
+        self.node = node
 
     def validate(self, data):
-        problems = self.type.validate(data)
+        problems = self.node.validate(data)
         if len(problems) > 0:
             raise Invalid(problems)
         return data
 
 
-class Type(object):
+class Node(object):
     pass
 
 
-class ValueType(Type):
+class ValueNode(Node):
 
     def __init__(self, value_type):
         self.type = value_type
@@ -98,7 +98,7 @@ class DictConfig(config(unexpected='raise')):
         return conf
 
 
-class ListType(Type):
+class ListNode(Node):
 
     def __init__(self, child_schema, config=None):
         self.child_schema = child_schema
@@ -108,8 +108,6 @@ class ListType(Type):
 
     @classmethod
     def build(cls, data):
-        if type(data) is ListType:
-            return data
         assert type(data) is list
         # model should contain only 1 item and optionally a config
         assert len(data) == 1 or (len(data) == 2 and isinstance(data[1], ListConfig))
@@ -146,7 +144,7 @@ class ListType(Type):
 
 config_key = 'sentinelconfignooneusethatihope'
 
-class DictType(Type):
+class DictNode(Node):
 
     def __init__(self, mapping, config=None):
         self.mapping = mapping
@@ -156,9 +154,6 @@ class DictType(Type):
 
     @classmethod
     def build(cls, model):
-        if type(model) is DictType:
-            return model
-
         assert type(model) is dict
         config = None
         mapping = {}
@@ -193,15 +188,15 @@ class DictType(Type):
 
 
 rules = [
-    (lambda model: type(model) is dict, DictType),
+    (lambda model: type(model) is dict, DictNode),
 ]
 
 def build_schema(model):
     if isinstance(model, Schema):
         return model
-    model_type = ValueType
+    node_type = ValueNode
     for rule in rules:
         if rule[0](model):
-            model_type = rule[1]
+            node_type = rule[1]
             break
-    return model_type.build(model)
+    return node_type.build(model)
