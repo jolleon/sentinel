@@ -24,6 +24,15 @@ class TestSchema(unittest.TestCase):
         mock_type.validate.assert_called_once_with(mock_data)
 
 
+class IntegrationTestSchema(unittest.TestCase):
+
+    def test_build_schema(self):
+        data = {'a': 1}
+        schema = build_schema(data)
+        self.assertEqual(Schema, type(schema))
+        self.assertEqual(DictNode, type(schema.node))
+
+
 class TestValueNode(unittest.TestCase):
 
     def _test_valid(self, value, data):

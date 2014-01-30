@@ -200,3 +200,8 @@ def build_node(model):
             node_type = rule[1]
             break
     return node_type.build(model)
+
+
+def build_schema(model):
+    node = build_node(model)
+    return Schema(node)
